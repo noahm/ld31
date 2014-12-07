@@ -48,7 +48,7 @@ Unfortunately, time has continued to move forward. Another minute gone.
 
 No need to feel defeated. It's not like you could complete the entire game without any sleep at all.
 
-You shuffle past your trusty alarm clock (better known as a cell phone) as it charges from your computer and walk into your room. climb into bed.
+You shuffle past your trusty alarm clock (better known as a cell phone) as it charges from your computer and walk into your room. In a practiced motion you strip off the day's clothes and fling them across the room to rest on top of the hamper, all while climbing into bed.
 
 > brainstorm
 

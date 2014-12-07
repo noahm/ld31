@@ -1,0 +1,48 @@
+html, body {
+	height: 100%;
+}
+
+body {
+	background-color: black;
+	color: #777;
+	font-family: monospace;
+	font-size: 18pt;
+	margin: 0;
+	flex-direction: column;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#canvas {
+	flex: 0 1 auto;
+	position: relative;
+	padding: 0.25em;
+	border: 4px ridge #333;
+	width: 800px;
+	height: 600px;
+	overflow-y: scroll;
+}
+
+#commands {
+	padding: 0.25em;
+	width: 800px;
+	border: 4px ridge #333;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+
+.cmd {
+	cursor: pointer;
+	border-radius: 4px;
+	padding: 0.5em;
+}
+
+.cmd:hover {
+	background-color: #222;
+}
+
+#canvas p {
+	margin-top: 0;
+}
