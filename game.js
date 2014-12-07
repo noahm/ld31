@@ -75,9 +75,9 @@ function State(name) {
 		if (acts.constructor != Array) {
 			acts = [acts];
 		}
-		for (var i = acts.length - 1; i >= 0; i--) {
-			this.transitions[acts[i]] = func;
-		};
+		acts.forEach(function(action) {
+			this.transitions[action] = func;
+		}, this);
 		return this;
 	};
 
@@ -107,7 +107,9 @@ function State(name) {
 	}
 }
 
-function Display($canvas) {
+function Display(textSelector, commandsSelector) {
+	var self = this, $text = $(textSelector), $commands = $(commandsSelector);
+
 	/**
 	 * Gradually transition the background and text colors
 	 */
@@ -116,11 +118,18 @@ function Display($canvas) {
 	};
 
 	/**
+	 * Calculate how much screen space is remaining
+	 */
+	this.getRemainingSpace = function() {
+		return 600 - $text[0].clientHeight - $commands[0].clientHeight;
+	};
+
+	/**
 	 * @param	lines	array of strings
 	 */
 	this.addLines = function(lines) {
 		lines.forEach(function(line) {
-			$('<p></p>').text(line).appendTo($canvas);
+			$('<p></p>').text(line).appendTo($text);
 		}, this);
 	};
 
@@ -129,7 +138,7 @@ function Display($canvas) {
 	 */
 	this.addCommands = function(commands) {
 		commands.forEach(function(cmdName) {
-			var cmd = commandRegistry[cmdName];
+			var cmd = Command.registry[cmdName];
 
 			// create new command, if necessary
 			if (typeof cmd === 'undefined') {
@@ -143,27 +152,29 @@ function Display($canvas) {
 			$('<span></span>')
 				.text(cmd.text)
 				.addClass('cmd')
-				.appendTo('#commands');
+				.appendTo($commands);
 			cmd.added = true;
 		}, this);
 	};
 
-	$('#commands').on('click', 'span', function() {
+	// take an action when a command is clicked
+	$commands.on('click', 'span', function() {
+		self.addLines([ '> '+this.textContent ]);
 		game.takeAction(this.textContent);
 	});
 }
 
-var commandRegistry = {};
 function Command(text) {
 	this.text = text;
 	this.added = false;
 
 	// register this in the catalog of all commands
-	commandRegistry[text] = this;
+	Command.registry[text] = this;
 }
+Command.registry = {};
 
 // Define game constants
-var display = new Display(jQuery('#canvas')),
+var display = new Display('#text', '#commands'),
 game = new StateMachine();
 
 // define game content

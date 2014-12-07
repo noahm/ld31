@@ -14,14 +14,18 @@ body {
 	justify-content: center;
 }
 
-#canvas {
+#screen {
 	flex: 0 1 auto;
 	position: relative;
 	padding: 0.25em;
 	border: 4px ridge #333;
 	width: 800px;
 	height: 600px;
-	overflow-y: scroll;
+	overflow: hidden;
+}
+
+#text p {
+	margin-top: 0;
 }
 
 #commands {
@@ -31,6 +35,10 @@ body {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
+	position: absolute;
+	bottom: -4px;
+	left: -4px;
+	background-color: black;
 }
 
 .cmd {
@@ -41,8 +49,4 @@ body {
 
 .cmd:hover {
 	background-color: #222;
-}
-
-#canvas p {
-	margin-top: 0;
 }
