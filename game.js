@@ -135,14 +135,20 @@ function State(name) {
 	}
 }
 
-function Display(textSelector, commandsSelector) {
+function Display(textSelector, commandsSelector, fontSize) {
 	var self = this,
 		$text = $(textSelector),
 		$commands = $(commandsSelector),
 		$remainingSpace = $('#remainingspace'),
 		$emptyPrompt,
 		fadeSpacing = 1000,
-		needsRestart = false;
+		fontSizeStep = 4;
+
+	$('#screen').css('font-size', fontSize+'pt');
+	this.shrinkFont = function() {
+		if (fontSize > 4) fontSize = fontSize - fontSizeStep;
+		$('#screen').animate({"font-size": fontSize+'pt'});
+	}
 
 	/**
 	 * Gradually transition the background and text colors
@@ -161,8 +167,8 @@ function Display(textSelector, commandsSelector) {
 	this.updateRemainingSpace = function() {
 		var space = Math.max(0, self.getRemainingSpace());
 		$remainingSpace.animateNumber({number: space});
-		if (space <= 0) {
-			needsRestart = true;
+		if (space <= 0 && !Command.registry['restart']) {
+			this.addCommands(['restart'], 5);
 		}
 	};
 
@@ -188,7 +194,7 @@ function Display(textSelector, commandsSelector) {
 				.animate({opacity: 1});
 		}
 
-		this.updateRemainingSpace();
+		// this.updateRemainingSpace();
 		return lines.length + 2;
 	};
 
@@ -219,10 +225,6 @@ function Display(textSelector, commandsSelector) {
 			delay = 0;
 		}
 
-		if (needsRestart) {
-			commands.push('restart');
-		}
-
 		commands.forEach(function(cmdName, index) {
 			var cmd = Command.registry[cmdName];
 
@@ -250,6 +252,7 @@ function Display(textSelector, commandsSelector) {
 
 	// take an action when a command is clicked
 	$commands.on('click', 'span', function() {
+		if (self.getRemainingSpace() < 1 && this.textContent !== 'restart') return;
 		self.echoCommand(this.textContent);
 		if (!game.takeAction(this.textContent)) {
 			self.nothingHappens();
@@ -267,12 +270,13 @@ function Command(text) {
 Command.registry = {};
 
 // Define game constants
-var display = new Display('#text', '#commands'),
-game = new StateMachine();
+var display = new Display('#text', '#commands', 24),
+	game = new StateMachine();
 
 // define game content
 game.addUniversalTransition('restart', function() {
 	display.clearText();
+	display.shrinkFont();
 	return game.getTransitionFromState('initial', 'begin')();
 });
 
@@ -290,9 +294,7 @@ game.addState('first asleep').addTransition('open eyes', function() {
 		'You are sitting in a comfortable chair in a dark room. You can feel the gentle contours of a computer mouse under your right hand.'
 	], ['move hand']);
 	return 'waking up';
-});
-
-game.addState('waking up').addTransition('move hand', function() {
+}).addTransition('move hand', function() {
 	display.addLinesWithCommands([
 		'Almost immediately you are blinded by a large computer screen less than a meter from your face.',
 		'It eagerly burns your retinas with the image of your half completed game.',
@@ -302,6 +304,8 @@ game.addState('waking up').addTransition('move hand', function() {
 	]);
 	return 'computer awake';
 });
+
+game.addState('waking up').addTransition('move hand', game.getTransitionFromState('first asleep', 'move hand'));
 
 game.addState('computer awake').addTransition('look at game', function(state) {
 	display.addLinesWithCommands([
