@@ -32,6 +32,10 @@ function StateMachine() {
 		return stateRegistry[stateName].getTransition(actionName);
 	}
 
+	this.canTakeAction = function(action) {
+		return this.currentState.canTransition(action);
+	};
+
 	/**
 	 * @param	action	name of an action to use to transition
 	 * @return	bool	true if action was valid and transition occurred
@@ -129,8 +133,18 @@ function Display(textSelector, commandsSelector) {
 	 */
 	this.addLines = function(lines) {
 		lines.forEach(function(line) {
-			$('<p></p>').text(line).appendTo($text);
+			$('<p></p>').text(line).hide().appendTo($text).fadeIn();
 		}, this);
+	};
+
+	this.echoCommand = function(action) {
+		this.addLines([ '> ' + action ]);
+	};
+
+	this.nothingHappens = function() {
+		this.addLines([
+			'That action doesnt apply at the moment.'
+		]);
 	};
 
 	/**
@@ -152,15 +166,21 @@ function Display(textSelector, commandsSelector) {
 			$('<span></span>')
 				.text(cmd.text)
 				.addClass('cmd')
-				.appendTo($commands);
+				.hide()
+				.appendTo($commands)
+				.fadeIn();
 			cmd.added = true;
 		}, this);
 	};
 
 	// take an action when a command is clicked
 	$commands.on('click', 'span', function() {
-		self.addLines([ '> '+this.textContent ]);
-		game.takeAction(this.textContent);
+		self.echoCommand(this.textContent);
+		if (game.canTakeAction(this.textContent)) {
+			game.takeAction(this.textContent);
+		} else {
+			self.nothingHappens();
+		}
 	});
 }
 
