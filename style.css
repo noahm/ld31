@@ -14,6 +14,18 @@ body {
 	justify-content: center;
 }
 
+#sidebar {
+	position: absolute;
+	bottom: 1em;
+	left: 5em;
+	transform: rotate(-90deg);
+	transform-origin: bottom left;
+}
+
+#sidebar > * {
+	margin: 0;
+}
+
 #screen {
 	flex: 0 1 auto;
 	position: relative;

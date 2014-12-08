@@ -1,18 +1,18 @@
 'use strict';
 
 function StateMachine() {
-	var stateRegistry = {}, flags = {};
+	var stateRegistry = {}, flags = {}, universalTransitions = {}, currentState;
 
 	/**
 	 * Adds a new state and sets it to the current state. Only works once.
 	 */
 	this.addInitialState = function(initialStateName) {
-		if (typeof this.currentState !== 'undefined') {
+		if (typeof currentState !== 'undefined') {
 			return;
 		}
-		this.currentState = new State(initialStateName);
-		stateRegistry[initialStateName] = this.currentState;
-		return this.currentState;
+		currentState = new State(initialStateName);
+		stateRegistry[initialStateName] = currentState;
+		return currentState;
 	}
 
 	/**
@@ -26,14 +26,32 @@ function StateMachine() {
 	};
 
 	/**
+	 * Adds a transition that can be taken from any state.
+	 * If the current state may override this with its own
+	 * transition for the given action.
+	 */
+	this.addUniversalTransition = function(acts, func) {
+		if (acts.constructor != Array) {
+			acts = [acts];
+		}
+		acts.forEach(function(action) {
+			universalTransitions[action] = func;
+		}, this);
+		return this;
+	};
+
+	/**
 	 * Returns a reference to the transition callback function
 	 */
 	this.getTransitionFromState = function(stateName, actionName) {
 		return stateRegistry[stateName].getTransition(actionName);
-	}
+	};
 
+	/**
+	 * @return	bool
+	 */
 	this.canTakeAction = function(action) {
-		return this.currentState.canTransition(action);
+		return currentState.canTransition(action) || universalTransitions.hasOwnProperty(action);
 	};
 
 	/**
@@ -41,9 +59,15 @@ function StateMachine() {
 	 * @return	bool	true if action was valid and transition occurred
 	 */
 	this.takeAction = function(action) {
-		var transitionResult = this.currentState.runTransition(action);
+		var transitionResult;
+		if (currentState.canTransition(action)) {
+			transitionResult = currentState.runTransition(action);
+		} else if (universalTransitions.hasOwnProperty(action)) {
+			transitionResult = universalTransitions[action](action);
+		}
+
 		if (transitionResult && transitionResult.constructor == String && stateRegistry.hasOwnProperty(transitionResult)) {
-			this.currentState = stateRegistry[transitionResult];
+			currentState = stateRegistry[transitionResult];
 			return true;
 		} else {
 			return false;
@@ -112,7 +136,13 @@ function State(name) {
 }
 
 function Display(textSelector, commandsSelector) {
-	var self = this, $text = $(textSelector), $commands = $(commandsSelector);
+	var self = this,
+		$text = $(textSelector),
+		$commands = $(commandsSelector),
+		$remainingSpace = $('#remainingspace'),
+		$emptyPrompt,
+		fadeSpacing = 1000,
+		needsRestart = false;
 
 	/**
 	 * Gradually transition the background and text colors
@@ -128,17 +158,50 @@ function Display(textSelector, commandsSelector) {
 		return 600 - $text[0].clientHeight - $commands[0].clientHeight;
 	};
 
+	this.updateRemainingSpace = function() {
+		var space = Math.max(0, self.getRemainingSpace());
+		$remainingSpace.animateNumber({number: space});
+		if (space <= 0) {
+			needsRestart = true;
+		}
+	};
+
 	/**
 	 * @param	lines	array of strings
 	 */
-	this.addLines = function(lines) {
-		lines.forEach(function(line) {
-			$('<p></p>').text(line).hide().appendTo($text).fadeIn();
+	this.addLines = function(lines, internal) {
+		lines.forEach(function(line, index) {
+			$('<p></p>')
+				.text(line)
+				.css('opacity', 0)
+				.appendTo($text)
+				.delay( internal ? 0 : fadeSpacing*(index+1) )
+				.animate({opacity: 1});
 		}, this);
+
+		if (!internal) {
+			$emptyPrompt = $('<p></p>')
+				.text('>')
+				.css('opacity', 0)
+				.appendTo($text)
+				.delay(fadeSpacing*(lines.length+1))
+				.animate({opacity: 1});
+		}
+
+		this.updateRemainingSpace();
+		return lines.length + 2;
+	};
+
+	this.addLinesWithCommands = function(lines, commands) {
+		this.addCommands(commands, this.addLines(lines));
+	};
+
+	this.clearText = function() {
+		$text.empty();
 	};
 
 	this.echoCommand = function(action) {
-		this.addLines([ '> ' + action ]);
+		$emptyPrompt.text('> ' + action);
 	};
 
 	this.nothingHappens = function() {
@@ -149,9 +212,18 @@ function Display(textSelector, commandsSelector) {
 
 	/**
 	 * @param	commands	array of string names of commands
+	 * @param	delay		how many lines we need to wait on
 	 */
-	this.addCommands = function(commands) {
-		commands.forEach(function(cmdName) {
+	this.addCommands = function(commands, delay) {
+		if (!delay) {
+			delay = 0;
+		}
+
+		if (needsRestart) {
+			commands.push('restart');
+		}
+
+		commands.forEach(function(cmdName, index) {
 			var cmd = Command.registry[cmdName];
 
 			// create new command, if necessary
@@ -166,19 +238,20 @@ function Display(textSelector, commandsSelector) {
 			$('<span></span>')
 				.text(cmd.text)
 				.addClass('cmd')
-				.hide()
+				.css('opacity', 0)
 				.appendTo($commands)
-				.fadeIn();
+				.delay(fadeSpacing*(index+delay))
+				.animate({opacity: 1});
 			cmd.added = true;
 		}, this);
+
+		this.updateRemainingSpace();
 	};
 
 	// take an action when a command is clicked
 	$commands.on('click', 'span', function() {
 		self.echoCommand(this.textContent);
-		if (game.canTakeAction(this.textContent)) {
-			game.takeAction(this.textContent);
-		} else {
+		if (!game.takeAction(this.textContent)) {
 			self.nothingHappens();
 		}
 	});
@@ -198,28 +271,32 @@ var display = new Display('#text', '#commands'),
 game = new StateMachine();
 
 // define game content
+game.addUniversalTransition('restart', function() {
+	display.clearText();
+	return game.getTransitionFromState('initial', 'begin')();
+});
+
 game.addInitialState('initial').addTransition('begin', function() {
-	display.addLines(['You are asleep.']);
-	display.addCommands(['open eyes']);
+	display.addLinesWithCommands(
+		['You are asleep.'],
+		['open eyes']
+	);
 	return 'first asleep';
 });
 
 game.addState('first asleep').addTransition('open eyes', function() {
-	display.addLines([
+	display.addLinesWithCommands([
 		'Ugh. You had been having such a plesant nap, but the thought of the upcoming deadline coaxes you awake, slightly groggy.',
 		'You are sitting in a comfortable chair in a dark room. You can feel the gentle contours of a computer mouse under your right hand.'
-	]);
-	display.addCommands(['move hand']);
+	], ['move hand']);
 	return 'waking up';
 });
 
 game.addState('waking up').addTransition('move hand', function() {
-	display.addLines([
+	display.addLinesWithCommands([
 		'Almost immediately you are blinded by a large computer screen less than a meter from your face.',
 		'It eagerly burns your retinas with the image of your half completed game.',
-	]);
-	// add brief flash of light?
-	display.addCommands([
+	], [
 		'look at game',
 		'look at clock',
 	]);
@@ -227,23 +304,21 @@ game.addState('waking up').addTransition('move hand', function() {
 });
 
 game.addState('computer awake').addTransition('look at game', function(state) {
-	display.addLines([
+	display.addLinesWithCommands([
 		'Truth be told, it\'s nowhere close to halfway complete. Just a couple of abstract sprites that will hopefully replace the red and green rectangles currently sliding back and forth across a dark grey background.'
-	]);
-	display.addCommands(['get back to work']);
+	], ['get back to work']);
 	if (state.name === 'aware of time') {
 		return 'aware of both';
 	} else {
 		return 'aware of game';
 	}
 }).addTransition('look at clock', function(state) {
-	display.addLines([
+	display.addLinesWithCommands([
 		'You glance towards the corner of the screen. Again.',
 		'3:47',
 		'Almost ten hours since the theme was announced. Ugh again.',
 		'It will be getting light outside soon. You need rest.'
-	]);
-	display.addCommands(['go to bed']);
+	], ['go to bed']);
 	if (state === 'aware of game') {
 		return 'aware of both';
 	} else {
@@ -261,11 +336,10 @@ game.addState('aware of time')
 	return state;
 })
 .addTransition('go to bed', function() {
-	display.addLines([
+	display.addLinesWithCommands([
 		'No need to feel defeated. It\'s not like you could complete the entire game without any sleep at all.',
 		'You shuffle past your trusty alarm clock (better known as a cell phone) as it charges from your computer and walk into your room. In a practiced motion you strip off the day\'s clothes and fling them across the room to rest on top of the hamper, all while climbing into bed.'
-	]);
-	display.addCommands([
+	], [
 		'brainstorm',
 		'close eyes'
 	]);
