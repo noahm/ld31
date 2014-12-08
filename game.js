@@ -270,7 +270,7 @@ function Command(text) {
 Command.registry = {};
 
 // Define game constants
-var display = new Display('#text', '#commands', 24),
+var display,
 	game = new StateMachine();
 
 // define game content
@@ -373,4 +373,7 @@ game.addState('aware of both')
 game.addState('in bed');
 
 // begin game
-game.takeAction('begin');
+jQuery(function() {
+	display = new Display('#text', '#commands', 24);
+	game.takeAction('begin');
+})
