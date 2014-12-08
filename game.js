@@ -161,7 +161,7 @@ function Display(textSelector, commandsSelector, fontSize) {
 	 * Calculate how much screen space is remaining
 	 */
 	this.getRemainingSpace = function() {
-		return 600 - $text[0].clientHeight - $commands[0].clientHeight;
+		return 600 - $text.first()[0].clientHeight - $commands.first()[0].clientHeight;
 	};
 
 	this.updateRemainingSpace = function() {
