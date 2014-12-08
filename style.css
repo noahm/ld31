@@ -1,3 +1,5 @@
+@import url(http://fonts.googleapis.com/css?family=Source+Code+Pro);
+
 html, body {
 	height: 100%;
 }
@@ -5,7 +7,7 @@ html, body {
 body {
 	background-color: black;
 	color: #777;
-	font-family: monospace;
+	font-family: 'Source Code Pro', monospace;
 	font-size: 18pt;
 	margin: 0;
 	flex-direction: column;
@@ -34,6 +36,8 @@ body {
 	width: 800px;
 	height: 600px;
 	overflow: hidden;
+	margin-left: 75px;
+	background-color: black;
 }
 
 #text p {
