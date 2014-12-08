@@ -10,6 +10,10 @@ body {
 	font-family: 'Source Code Pro', monospace;
 	font-size: 18pt;
 	margin: 0;
+	-webkit-flex-direction: column;
+	display: -webkit-flex;
+	-webkit-align-items: center;
+	-webkit-justify-content: center;
 	flex-direction: column;
 	display: flex;
 	align-items: center;
@@ -20,6 +24,8 @@ body {
 	position: absolute;
 	bottom: 1em;
 	left: 5em;
+	-webkit-transform: rotate(-90deg);
+	-webkit-transform-origin: bottom left;
 	transform: rotate(-90deg);
 	transform-origin: bottom left;
 }
@@ -29,6 +35,7 @@ body {
 }
 
 #screen {
+	-webkit-flex: 0 1 auto;
 	flex: 0 1 auto;
 	position: relative;
 	padding: 0.25em;
@@ -48,6 +55,9 @@ body {
 	padding: 0.25em;
 	width: 800px;
 	border: 4px ridge #333;
+	display: -webkit-flex;
+	-webkit-flex-wrap: wrap;
+	-webkit-justify-content: space-between;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
